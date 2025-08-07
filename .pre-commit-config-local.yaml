@@ -1,0 +1,94 @@
+repos:
+  - repo: local
+    hooks:
+      - id: ruff
+        name: "Ruff Linter"
+        entry: ruff check
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
+        args: [--fix, --config=ruff.toml]
+      - id: ruff-format
+        name: "Ruff Format"
+        entry: ruff format
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
+        args: ["--line-length", "80"]
+  - repo: local
+    hooks:
+      - id: check-ast
+        name: check python ast
+        description: simply checks whether the files parse as valid python.
+        entry: check-ast
+        language: system
+        types: [python]
+      - id: check-case-conflict
+        name: check for case conflicts
+        description: checks for files that would conflict in case-insensitive filesystems.
+        entry: check-case-conflict
+        language: system
+      - id: check-docstring-first
+        name: check docstring is first
+        description: checks a common error of defining a docstring after code.
+        entry: check-docstring-first
+        language: system
+        types: [python]
+      - id: check-executables-have-shebangs
+        name: check that executables have shebangs
+        description: ensures that (non-binary) executables have a shebang.
+        entry: check-executables-have-shebangs
+        language: system
+        types: [text, executable]
+      - id: check-json
+        name: check json
+        description: checks json files for parseable syntax.
+        entry: check-json
+        language: system
+        types: [json]
+      - id: check-merge-conflict
+        name: check for merge conflicts
+        description: checks for files that contain merge conflict strings.
+        entry: check-merge-conflict
+        language: system
+        types: [text]
+      - id: check-yaml
+        name: check yaml
+        description: checks yaml files for parseable syntax.
+        entry: check-yaml
+        language: system
+        types: [yaml]
+      - id: detect-private-key
+        name: detect private key
+        description: detects the presence of private keys.
+        entry: detect-private-key
+        language: system
+        types: [text]
+      - id: end-of-file-fixer
+        name: fix end of files
+        description: ensures that a file is either empty, or ends with one newline.
+        entry: end-of-file-fixer
+        language: system
+        types: [text]
+        stages: [pre-commit, pre-push, manual]
+        minimum_pre_commit_version: 3.2.0
+      - id: fix-byte-order-marker
+        name: fix utf-8 byte order marker
+        description: removes utf-8 byte order marker.
+        entry: fix-byte-order-marker
+        language: system
+        types: [text]
+      - id: mixed-line-ending
+        name: mixed line ending
+        description: replaces or checks mixed line ending.
+        entry: mixed-line-ending
+        language: system
+        types: [text]
+      - id: trailing-whitespace
+        name: trim trailing whitespace
+        description: trims trailing whitespace.
+        entry: trailing-whitespace-fixer
+        language: system
+        types: [text]
+        stages: [pre-commit, pre-push, manual]
+        minimum_pre_commit_version: 3.2.0
