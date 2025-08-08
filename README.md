@@ -1,6 +1,7 @@
 ## 👋 들어가며
 
-> [!question] 
+> [!tip] 
+> 
 > **Boilerplate?**
 > 
 > In computer programming, **boilerplate code**, or simply **boilerplate**, are ==sections of code that are repeated in multiple places with little to no variation.== * From Wikipedia
@@ -487,7 +488,7 @@ echo "[Setup] Git hooks intalled successfully!"
 ##### Git 기본 에디터를 VS Code로 변경
 
 * Git 커밋 메시지 작성이나 충돌 해결은 보통 기본 에디터(vim, nano 등)을 사용하게 됨
-	-당연히 vim, nano보단 VS Code가 편할테니 VS Code로 바꾸는 것이 좋음
+	-당연히 vim, nano보단 VS Code가 편할테니 VS Code로 바꾸는 것이 좋음
 
 	```bash
 	git config --global core.editor "code --wait"
@@ -626,7 +627,7 @@ echo "[Setup] Git hooks intalled successfully!"
 
 <figure>
 <img src="https://i.imgur.com/svHcBRL.png">
-<figcaption>꽤 화려한 oh-my-zsh</figcaption>
+<figcaption>꽤 화려한 oh-my-zsh</figcaption>
 </figure>
 
 * 여기에 여러 정보를 제공해주는 테마인 `powerlevel10k`까지 설치하면 충분함
@@ -694,7 +695,7 @@ echo "[Setup] Git hooks intalled successfully!"
 
 <figure>
 <img src="https://i.imgur.com/p55z4Fs.png">
-<figcaption>매번 귀찮게 <code>ps -ef | grep</code>를 치지 않아도 된다!</figcaption>
+<figcaption>매번 귀찮게 <code>ps -ef | grep</code>를 치지 않아도 된다!</figcaption>
 </figure>
 
 ## 🚀 코드 품질
@@ -715,7 +716,7 @@ echo "[Setup] Git hooks intalled successfully!"
 
 <figure>
 <img src="https://i.imgur.com/AOM8Sjf.png">
-<figcaption>Ruff의 압도적인 속도</figcaption>
+<figcaption>Ruff의 압도적인 속도</figcaption>
 </figure>
 
 * [깃허브 저장소](https://github.com/astral-sh/ruff)
@@ -847,7 +848,7 @@ echo "[Setup] Git hooks intalled successfully!"
 │   ├──  services             # 서비스 레이어 (비즈니스 로직 계층)
 │   └──  utils                # 공통 사용 유틸리티 함수
 ├──  tests                    # 단위테스트 관리 (src 폴더 미러링)
-│	├──  api                  # API 관련 테스트
+│	├──  api                  # API 관련 테스트
 │	│   └──  routers          # 라우터 테스트
 │	├──  clients              # 클라이언트 테스트
 │	├──  repositories         # 리포지토리 CRUD 테스트
@@ -944,13 +945,14 @@ import sys
 import structlog
 from structlog.processors import CallsiteParameter
 
-from configs.settings import settings
-
 # 콘솔 핸들러 설정
 console_handler = logging.StreamHandler(sys.stdout)
 console_handler.setFormatter(
     structlog.stdlib.ProcessorFormatter(
-        processor=structlog.dev.ConsoleRenderer(colors=True),
+        processors=[
+            structlog.stdlib.ProcessorFormatter.remove_processors_meta,
+            structlog.dev.ConsoleRenderer(colors=True),
+        ],
         foreign_pre_chain=[
             structlog.stdlib.add_log_level,
             structlog.processors.TimeStamper(
@@ -969,11 +971,15 @@ console_handler.setFormatter(
 
 # 파일 핸들러 설정
 file_handler = logging.handlers.RotatingFileHandler(
-    settings.log_path, maxBytes=10_000_000, backupCount=5, encoding="utf-8"
+    "./app.log", maxBytes=10_000_000, backupCount=5, encoding="utf-8"
 )
 file_handler.setFormatter(
     structlog.stdlib.ProcessorFormatter(
-        processor=structlog.processors.JSONRenderer(ensure_ascii=False),
+        processors=[
+            structlog.stdlib.ProcessorFormatter.remove_processors_meta,
+            structlog.processors.dict_tracebacks,
+            structlog.processors.JSONRenderer(ensure_ascii=False),
+        ],
         foreign_pre_chain=[
             structlog.stdlib.add_log_level,
             structlog.processors.TimeStamper(
@@ -1002,10 +1008,8 @@ structlog.configure(
     processors=[
         structlog.contextvars.merge_contextvars,
         structlog.processors.StackInfoRenderer(),
-        structlog.processors.format_exc_info,
         structlog.processors.UnicodeDecoder(),
         structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M:%S", utc=False),
-        structlog.processors.dict_tracebacks,
         structlog.stdlib.render_to_log_kwargs,
     ],
     logger_factory=structlog.stdlib.LoggerFactory(),
@@ -1018,18 +1022,17 @@ def handle_uncaught_exception(exc_type, exc_value, exc_traceback):
     처리되지 않은 예외를 로깅하기 위한 함수.
     sys.excepthook의 표준 인자를 그대로 받음.
     """
-    # 사용자가 Ctrl+C로 종료한 경우는 무시합니다.
+    # 사용자가 Ctrl+C로 종료한 경우는 무시
     if issubclass(exc_type, KeyboardInterrupt):
         sys.__excepthook__(exc_type, exc_value, exc_traceback)
         return
 
-    # structlog 로거를 가져옵니다.
-    log = structlog.get_logger("uncaught_exception")
+    logger = structlog.get_logger("uncaught_exception")
 
-    # exc_info에 튜플을 전달하여 에러를 로깅합니다.
-    log.error(
+    # exc_info에 예외 튜플을 전달하면 structlog가 처리
+    logger.error(
         "처리되지 않은 예외가 발생했습니다.",
-        exc_info=(exc_type, exc_value, exc_traceback)
+        exc_info=(exc_type, exc_value, exc_traceback),
     )
 
 # --* 테스트 ---
@@ -1045,10 +1048,7 @@ logger = structlog.get_logger(__name__)
 sys.excepthook = logging.handle_uncaught_exception
 
 logger.info("애플리케이션 시작")
-try:
-    x = 1 / 0
-except ZeroDivisionError:
-    logger.exception("계산 중 오류 발생")
+x = 1 / 0
 
 ```
 
